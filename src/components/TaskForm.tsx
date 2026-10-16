@@ -1,4 +1,23 @@
-export function TaskForm() {
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+interface TaskFormProps {
+    onAddTask: (title: string) => void;
+}
+export function TaskForm({
+    onAddTask,
+}: TaskFormProps) {
+    const [title, setTitle] = useState('');
+    const normalizedTitle = title.trim();
+    function handleSubmit(
+        event: FormEvent<HTMLFormElement>,
+    ) {
+        event.preventDefault();
+        if (!normalizedTitle) {
+            return;
+        }
+        onAddTask(normalizedTitle);
+        setTitle('');
+    }
     return (
         <section
             className="panel"
@@ -9,11 +28,18 @@ export function TaskForm() {
                     <p className="section-heading__eyebrow">
                         Registro
                     </p>
-                    <h2 id="task-form-title">Nueva tarea</h2>
+                    <h2 id="task-form-title">
+                        Nueva tarea
+                    </h2>
                 </div>
             </div>
-            <form className="task-form">
-                <label htmlFor="task-title">Título de la tarea</label>
+            <form
+                className="task-form"
+                onSubmit={handleSubmit}
+            >
+                <label htmlFor="task-title">
+                    Título de la tarea
+                </label>
                 <div className="task-form__row">
                     <input
                         id="task-title"
@@ -21,15 +47,24 @@ export function TaskForm() {
                         type="text"
                         placeholder="Ejemplo: revisar documentación"
                         maxLength={120}
+                        value={title}
+                        onChange={(event) =>
+                            setTitle(event.target.value)
+                        }
+                        required
                     />
-                    <button type="button" disabled>
+                    <button
+                        type="submit"
+                        disabled={!normalizedTitle}
+                    >
                         Agregar tarea
                     </button>
                 </div>
                 <p className="helper-text">
-                    El formulario se activará en una actividad posterior.
+                    {title.length}/120 caracteres
                 </p>
             </form>
         </section>
     );
 }
+

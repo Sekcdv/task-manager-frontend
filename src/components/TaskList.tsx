@@ -4,8 +4,11 @@ interface TaskListProps {
     tasks: Task[];
     emptyMessage: string;
     onToggleStatus: (id: string) => void;
-    onEditTask: (id: string, title: string) => void;
-    onDeleteTask: (id: string) => void;
+    onEditTask: (
+        id: string,
+        title: string,
+    ) => void;
+    onDeleteTask: (id: string) => boolean;
 }
 export function TaskList({
     tasks,
@@ -27,21 +30,27 @@ export function TaskList({
                 <div>
                     <p className="section-heading__eyebrow">
                         Actividades
-                    </p>
-                    <h2 id="task-list-title">
+                    </p><h2 id="task-list-title">
                         Tareas registradas
-                    </h2> </div>
+                    </h2>
+                </div>
                 <span className="result-count">
                     {resultLabel}
                 </span>
             </div>
             {tasks.length === 0 ? (
-                <div className="empty-state" role="status">
+                <div
+                    className="empty-state"
+                    role="status"
+                >
                     <h3>Sin resultados</h3>
                     <p>{emptyMessage}</p>
                 </div>
             ) : (
-                <div className="task-list" role="list">
+                <div
+                    className="task-list"
+                    role="list"
+                >
                     {tasks.map((task) => (
                         <TaskItem
                             key={task.id}

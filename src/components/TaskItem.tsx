@@ -9,6 +9,7 @@ import {
 } from '../utils/task-validation';
 interface TaskItemProps {
     task: Task;
+    canDelete: boolean;
     onToggleStatus: (task: Task) => Promise<boolean>;
     onEditTask: (
         task: Task,
@@ -18,6 +19,7 @@ interface TaskItemProps {
 }
 export function TaskItem({
     task,
+    canDelete,
     onToggleStatus,
     onEditTask,
     onDeleteTask,
@@ -30,11 +32,11 @@ export function TaskItem({
     const statusLabel =
         task.status === 'completed'
             ? 'Completada'
-            : 'Pendiente';
-    function startEditing(): void {
-        setDraftTitle(task.title);
-        setError(''); setIsEditing(true);
-    }
+            : 'Pendiente'; function startEditing(): void {
+                setDraftTitle(task.title);
+                setError('');
+                setIsEditing(true);
+            }
     function cancelEditing(): void {
         setDraftTitle(task.title);
         setError('');
@@ -62,10 +64,10 @@ export function TaskItem({
         }
     }
     async function handleToggle(): Promise<void> {
-        setIsBusy(true);
-        await onToggleStatus(task);
+        setIsBusy(true); await onToggleStatus(task);
         setIsBusy(false);
-    } async function handleDelete(): Promise<void> {
+    }
+    async function handleDelete(): Promise<void> {
         setIsBusy(true);
         await onDeleteTask(task);
         setIsBusy(false);
@@ -98,10 +100,10 @@ export function TaskItem({
                                 setDraftTitle(event.target.value)
                             }
                             autoFocus
-                        />
-                        {error && (<p className="field-error" role="alert">
-                            {error}
-                        </p>
+                        /> {error && (
+                            <p className="field-error" role="alert">
+                                {error}
+                            </p>
                         )}
                         <div className="task-item__edit-actions">
                             <button type="submit" disabled={isBusy}>
@@ -159,14 +161,16 @@ export function TaskItem({
                 >
                     Editar
                 </button>
-                <button
-                    type="button"
-                    className="button-danger"
-                    disabled={isBusy || isEditing}
-                    onClick={() => void handleDelete()}
-                >
-                    Eliminar
-                </button>
+                {canDelete && (
+                    <button
+                        type="button"
+                        className="button-danger"
+                        disabled={isBusy || isEditing}
+                        onClick={() => void handleDelete()}
+                    >
+                        Eliminar
+                    </button>
+                )}
             </div>
         </article>
     );

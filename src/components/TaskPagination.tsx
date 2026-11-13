@@ -1,36 +1,41 @@
+import type { PageMeta } from '../models/api.types';
 interface TaskPaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPrevious: () => void;
-  onNext: () => void;
+  meta: PageMeta;
+  disabled: boolean;
+  onPageChange: (page: number) => void;
 }
-
 export function TaskPagination({
-  currentPage,
-  totalPages,
-  onPrevious,
-  onNext,
+  meta,
+  disabled,
+  onPageChange,
 }: TaskPaginationProps) {
-  if (totalPages <= 1) {
+  if (meta.totalPages <= 1) {
     return null;
   }
-
   return (
-    <nav className="pagination" aria-label="Paginación de tareas">
+    <nav
+      className="pagination"
+      aria-label="Paginación de tareas"
+    >
       <button
         type="button"
-        onClick={onPrevious}
-        disabled={currentPage === 1}
+        disabled={disabled || !meta.hasPreviousPage
+        }
+        onClick={() =>
+          onPageChange(meta.page - 1)
+        }
       >
         Anterior
       </button>
-      <span className="pagination__status" role="status">
-        Página {currentPage} de {totalPages}
+      <span aria-live="polite">
+        Página {meta.page} de {meta.totalPages}
       </span>
       <button
         type="button"
-        onClick={onNext}
-        disabled={currentPage === totalPages}
+        disabled={disabled || !meta.hasNextPage}
+        onClick={() =>
+          onPageChange(meta.page + 1)
+        }
       >
         Siguiente
       </button>

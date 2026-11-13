@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
+﻿import { useState } from 'react';
 import { AsyncStatus } from '../components/AsyncStatus';
 import { TaskFilters } from '../components/TaskFilters';
 import { TaskForm } from '../components/TaskForm';
 import { TaskList } from '../components/TaskList';
 import { TaskPagination } from '../components/TaskPagination';
 import { TaskSummary } from '../components/TaskSummary';
+import { useAuth } from '../hooks/useAuth';
 import { useTaskList } from '../hooks/useTaskList';
 import type {
+    SortOrder,
     TaskListQuery,
     TaskSortField,
-    SortOrder,
 } from '../models/api.types';
 import type { Task } from '../models/task.interface';
 import type {
@@ -23,13 +23,6 @@ import {
     deleteTask as deleteTaskRequest,
     updateTask as updateTaskRequest,
 } from '../services/task.api.service';
-import {
-    buildTaskViewParams,
-    DEFAULT_FILTER,
-    DEFAULT_SORT,
-    parseTaskViewParams,
-} from '../utils/task-search-params';
-import type { TaskViewState } from '../utils/task-search-params';
 
 const PAGE_SIZE = 5;
 
@@ -50,34 +43,17 @@ function mapSort(sort: TaskSort): {
 }
 
 export function TasksPage() {
-    // La URL es la fuente de verdad de la consulta
-    const [searchParams, setSearchParams] = useSearchParams();
-    const { query, filter, sort, page } =
-        parseTaskViewParams(searchParams);
-
+    const { accessToken, user } = useAuth();
+    const [query, setQuery] = useState('');
+    const [filter, setFilter] = useState<TaskFilter>('all');
+    const [sort, setSort] = useState<TaskSort>('updated-desc');
+    const [page, setPage] = useState(1);
     const [isMutating, setIsMutating] = useState(false);
-    const [operationMessage, setOperationMessage] =
-        useState('');
-    const [operationFailed, setOperationFailed] =
-        useState(false);
-
-    function updateView(
-        changes: Partial<TaskViewState>,
-        replace = false,
-    ): void {
-        setSearchParams(
-            buildTaskViewParams({
-                query,
-                filter,
-                sort,
-                page,
-                ...changes,
-            }),
-            { replace },
-        );
-    }
+    const [operationMessage, setOperationMessage] = useState('');
+    const [operationFailed, setOperationFailed] = useState(false);
 
     const mappedSort = mapSort(sort);
+    const canDelete = user?.role === 'admin';
     const taskListQuery: TaskListQuery = {
         page,
         limit: PAGE_SIZE,
@@ -86,27 +62,22 @@ export function TasksPage() {
         sortBy: mappedSort.sortBy,
         order: mappedSort.order,
     };
-
     const {
         tasks,
         meta,
         status,
         errorMessage,
         reload,
-    } = useTaskList(taskListQuery);
+    } = useTaskList(taskListQuery, accessToken);
 
-    // Si la URL pide una página inexistente (ej. ?page=99),
-    // se redirige a la última página disponible.
-    useEffect(() => {
-        if (
-            status === 'empty' &&
-            meta.totalPages > 0 &&
-            page > meta.totalPages
-        ) {
-            updateView({ page: meta.totalPages }, true);
+    function requireToken(): string | null {
+        if (accessToken) {
+            return accessToken;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [status, meta.totalPages, page]);
+        setOperationFailed(true);
+        setOperationMessage('La sesión no está disponible.');
+        return null;
+    }
 
     async function runMutation(
         operation: () => Promise<unknown>,
@@ -131,128 +102,101 @@ export function TasksPage() {
 
     function refreshAfterMutation(): void {
         if (page !== 1) {
-            updateView({ page: 1 });
+            setPage(1);
             return;
         }
         reload();
     }
 
-    async function handleAddTask(
-        title: string,
-    ): Promise<boolean> {
+    async function handleAddTask(title: string): Promise<boolean> {
+        const token = requireToken();
+        if (!token) {
+            return false;
+        }
+
         const succeeded = await runMutation(
-            () => createTaskRequest({ title }),
+            () => createTaskRequest({ title }, token),
             'La tarea fue creada.',
         );
+
         if (succeeded) {
             refreshAfterMutation();
         }
         return succeeded;
     }
 
-    async function handleToggleStatus(
-        task: Task,
-    ): Promise<boolean> {
-        const nextStatus =
-            task.status === 'pending' ? 'completed' : 'pending';
+    async function handleToggleStatus(task: Task): Promise<boolean> {
+        const token = requireToken();
+        if (!token) {
+            return false;
+        }
+
+        const nextStatus = task.status === 'pending' ? 'completed' : 'pending';
         const succeeded = await runMutation(
-            () =>
-                updateTaskRequest(task.id, {
-                    status: nextStatus,
-                }),
+            () => updateTaskRequest(task.id, { status: nextStatus }, token),
             'El estado fue actualizado.',
         );
+
         if (succeeded) {
             reload();
         }
         return succeeded;
     }
 
-    async function handleEditTask(
-        task: Task,
-        title: string,
-    ): Promise<boolean> {
-        const succeeded = await runMutation(
-            () => updateTaskRequest(task.id, { title }),
-            'El título fue actualizado.',
-        );
-        if (succeeded) {
-            reload();
-        }
-        return succeeded;
-    }
-
-    async function handleDeleteTask(
-        task: Task,
-    ): Promise<boolean> {
-        const shouldDelete = window.confirm(
-            `¿Eliminar la tarea "${task.title}"?`,
-        );
-        if (!shouldDelete) {
+    async function handleEditTask(task: Task, title: string): Promise<boolean> {
+        const token = requireToken();
+        if (!token) {
             return false;
         }
 
         const succeeded = await runMutation(
-            () => deleteTaskRequest(task.id),
-            'La tarea fue eliminada.',
+            () => updateTaskRequest(task.id, { title }, token),
+            'La tarea fue actualizada.',
         );
+
         if (succeeded) {
-            if (tasks.length === 1 && page > 1) {
-                updateView({ page: page - 1 }, true);
-            } else {
-                reload();
-            }
+            reload();
         }
         return succeeded;
     }
 
-    function handleQueryChange(value: string): void {
-        // replace: true evita una entrada de historial por cada tecla
-        updateView({ query: value, page: 1 }, true);
-    }
+    async function handleDeleteTask(task: Task): Promise<boolean> {
+        const token = requireToken();
+        if (!token) {
+            return false;
+        }
 
-    function handleFilterChange(value: TaskFilter): void {
-        updateView({ filter: value, page: 1 });
-    }
+        const succeeded = await runMutation(
+            () => deleteTaskRequest(task.id, token),
+            'La tarea fue eliminada.',
+        );
 
-    function handleSortChange(value: TaskSort): void {
-        updateView({ sort: value, page: 1 });
-    }
-
-    function handleClear(): void {
-        updateView({
-            query: '',
-            filter: DEFAULT_FILTER,
-            sort: DEFAULT_SORT,
-            page: 1,
-        });
-        setOperationMessage('');
+        if (succeeded) {
+            refreshAfterMutation();
+        }
+        return succeeded;
     }
 
     return (
-        <div className="page-stack">
-            <section
-                className="page-introduction"
-                aria-labelledby="tasks-page-title"
-            >
-                <p className="section-heading__eyebrow">
-                    Gestión remota
-                </p>
-                <h2 id="tasks-page-title">Mis tareas</h2>
-                <p>Los cambios se guardan mediante la API REST.</p>
-            </section>
+        <section className="panel task-page" aria-labelledby="tasks-title">
+            <header className="task-page__header">
+                <div>
+                    <p className="section-heading__eyebrow">Gestión</p>
+                    <h2 id="tasks-title">Tareas</h2>
+                </div>
+                <span className="user-chip">
+                    {user?.name ?? 'Usuario'}
+                </span>
+            </header>
 
-            <TaskForm
-                isSubmitting={isMutating}
-                onAddTask={handleAddTask}
-            />
+            <TaskForm isSubmitting={isMutating} onAddTask={handleAddTask} />
 
             {operationMessage && (
                 <p
                     className={
                         operationFailed
                             ? 'operation-message operation-message--error'
-                            : 'operation-message'
+                            : 'operation-message operation-message--success'
                     }
                     role={operationFailed ? 'alert' : 'status'}
                 >
@@ -260,16 +204,22 @@ export function TasksPage() {
                 </p>
             )}
 
+            <TaskSummary tasks={tasks} total={meta.total} />
             <TaskFilters
                 query={query}
                 filter={filter}
                 sortBy={sort}
                 resultCount={meta.total}
                 isLoading={status === 'loading'}
-                onQueryChange={handleQueryChange}
-                onFilterChange={handleFilterChange}
-                onSortChange={handleSortChange}
-                onClear={handleClear}
+                onQueryChange={setQuery}
+                onFilterChange={setFilter}
+                onSortChange={setSort}
+                onClear={() => {
+                    setQuery('');
+                    setFilter('all');
+                    setSort('updated-desc');
+                    setPage(1);
+                }}
             />
 
             <AsyncStatus
@@ -278,24 +228,19 @@ export function TasksPage() {
                 onRetry={reload}
             />
 
-            {status !== 'error' && (
-                <>
-                    <TaskSummary tasks={tasks} total={meta.total} />
-                    <TaskList
-                        tasks={tasks}
-                        onToggleStatus={handleToggleStatus}
-                        onEditTask={handleEditTask}
-                        onDeleteTask={handleDeleteTask}
-                    />
-                    <TaskPagination
-                        meta={meta}
-                        disabled={status === 'loading' || isMutating}
-                        onPageChange={(nextPage) =>
-                            updateView({ page: nextPage })
-                        }
-                    />
-                </>
-            )}
-        </div>
+            <TaskList
+                tasks={tasks}
+                canDelete={canDelete}
+                onToggleStatus={handleToggleStatus}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
+            />
+
+            <TaskPagination
+                meta={meta}
+                disabled={isMutating || status === 'loading'}
+                onPageChange={setPage}
+            />
+        </section>
     );
 }

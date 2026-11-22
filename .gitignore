@@ -23,4 +23,13 @@ dist-ssr
 *.sln
 *.sw?
 
+
+node_modules
+dist
 .env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+!.env.production.example
+!.env.test

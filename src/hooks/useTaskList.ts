@@ -50,14 +50,14 @@ export function useTaskList(
     const reload = useCallback(() => {
         setReloadKey((current) => current + 1);
     }, []);
+    const emptyState: TaskListState = {
+        tasks: [],
+        meta: { ...EMPTY_META, page, limit },
+        status: 'idle',
+        errorMessage: '',
+    };
     useEffect(() => {
         if (!accessToken) {
-            setState({
-                tasks: [],
-                meta: { ...EMPTY_META, page, limit },
-                status: 'idle',
-                errorMessage: '',
-            });
             return;
         }
 
@@ -115,5 +115,7 @@ export function useTaskList(
         order,
         reloadKey,
     ]);
-    return { ...state, reload };
+    return accessToken
+        ? { ...state, reload }
+        : { ...emptyState, reload };
 }

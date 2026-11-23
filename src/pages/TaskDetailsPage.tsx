@@ -31,7 +31,8 @@ type DetailStatus =
 export function TaskDetailPage() {
     const { taskId } = useParams<{ taskId: string }>();
     const navigate = useNavigate();
-    const { accessToken } = useAuth();
+    const { accessToken, user } = useAuth();
+    const canDelete = user?.role === 'admin';
     const [task, setTask] = useState<Task | null>(null);
     const [status, setStatus] = useState<DetailStatus>('loading');
     const [errorMessage, setErrorMessage] = useState('');
@@ -39,13 +40,7 @@ export function TaskDetailPage() {
     const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
-        if (!taskId) {
-            setStatus('not-found');
-            return;
-        }
-        if (!accessToken) {
-            setStatus('error');
-            setErrorMessage('La sesión no está disponible.');
+        if (!taskId || !accessToken) {
             return;
         }
 
@@ -82,7 +77,7 @@ export function TaskDetailPage() {
     }, [accessToken, taskId, reloadKey]);
 
     async function handleDelete(): Promise<void> {
-        if (!task || !accessToken) {
+        if (!task || !accessToken || !canDelete) {
             return;
         }
 
@@ -104,8 +99,19 @@ export function TaskDetailPage() {
         }
     }
 
+    const notFoundPage = (
+        <NotFoundPage
+            title="Tarea no encontrada"
+            message="La tarea no existe o fue eliminada."
+        />
+    );
+
     if (!accessToken) {
         return <Navigate to="/login" replace />;
+    }
+
+    if (!taskId) {
+        return notFoundPage;
     }
 
     if (status === 'loading') {
@@ -113,12 +119,7 @@ export function TaskDetailPage() {
     }
 
     if (status === 'not-found') {
-        return (
-            <NotFoundPage
-                title="Tarea no encontrada"
-                message="La tarea no existe o fue eliminada."
-            />
-        );
+        return notFoundPage;
     }
 
     if (status === 'error' || !task) {
@@ -177,14 +178,16 @@ export function TaskDetailPage() {
                 <Link className="button-link button-link--secondary" to="/tasks">
                     Volver a tareas
                 </Link>
-                <button
-                    type="button"
-                    className="button-danger"
-                    disabled={isDeleting}
-                    onClick={() => void handleDelete()}
-                >
-                    {isDeleting ? 'Eliminando...' : 'Eliminar tarea'}
-                </button>
+                {canDelete && (
+                    <button
+                        type="button"
+                        className="button-danger"
+                        disabled={isDeleting}
+                        onClick={() => void handleDelete()}
+                    >
+                        {isDeleting ? 'Eliminando...' : 'Eliminar tarea'}
+                    </button>
+                )}
             </div>
         </article>
     );

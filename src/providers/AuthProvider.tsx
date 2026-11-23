@@ -72,8 +72,7 @@ export function AuthProvider({
             token: string,
             signal?: AbortSignal,
         ): Promise<void> => {
-            setStatus('checking');
-            setSessionMessage(''); try {
+            try {
                 const response = await getAuthenticatedUser(
                     token,
                     signal,
@@ -101,11 +100,15 @@ export function AuthProvider({
         if (!initialToken) {
             return;
         }
+        const token = initialToken;
         const controller = new AbortController();
-        void validateSession(
-            initialToken,
-            controller.signal,
-        );
+        async function checkSession(): Promise<void> {
+            await validateSession(
+                token,
+                controller.signal,
+            );
+        }
+        void checkSession();
         return () => controller.abort();
     }, [initialToken, validateSession]);
     const login = useCallback(
@@ -140,7 +143,10 @@ export function AuthProvider({
             if (!accessToken) {
                 endSession('Inicia sesión para continuar.');
                 return;
-            } await validateSession(accessToken);
+            }
+            setStatus('checking');
+            setSessionMessage('');
+            await validateSession(accessToken);
         }, [accessToken, endSession, validateSession]);
     const clearSessionMessage = useCallback(
         (): void => setSessionMessage(''),

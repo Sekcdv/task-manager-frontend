@@ -1,19 +1,26 @@
 # Administrador de tareas Frontend
-Aplicación desarrollada con React, TypeScript, Vite y PNPM.
-## Funciones actuales
-- Operaciones CRUD de tareas.
-- Validación al registrar y editar.
-- Búsqueda por título.
-- Filtro por estado.
-- Ordenamiento de resultados.
-- Persistencia mediante localStorage.
-- Interfaz adaptable.
-## Ejecución
-pnpm install
-pnpm dev
-## Validación técnica
-pnpm lint
-pnpm build
-## Alcance
-Esta versión utiliza almacenamiento local del navegador.
-La conexión con la API REST se realizará en el EC3.
+SPA con React TypeScript Vite y React Router.
+Consume una API REST protegida mediante JWT Bearer.
+## Funciones
+- Registro login restauración y logout.
+- Rutas públicas y protegidas.
+- CRUD remoto.
+- Búsqueda filtros orden y paginación.
+- Detalle por identificador.
+- Permisos user y admin.
+- Pruebas y despliegue estático.
+## Instalación
+pnpm install --frozen-lockfile
+## Desarrollo
+1. Copiar .env.example como .env.local.
+2. Confirmar VITE_API_URL=/api.
+3. Iniciar Backend en localhost:3000.
+4. Ejecutar pnpm dev.
+## Verificación
+pnpm verify
+## Producción
+- Frontend: URL_FRONTEND
+- API: URL_BACKEND
+- Versión: 1.0.0
+Consulta docs/deployment-configuration.md y
+docs/release-checklist.md

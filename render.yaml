@@ -12,7 +12,7 @@ services:
       - key: NODE_VERSION
         value: 24.21.0
       - key: VITE_API_URL
-        value: <URL_DEL_BACKEND>/api
+        value: https://express-task-api-0c9g.onrender.com/api
     routes:
       - type: rewrite
         source: /*

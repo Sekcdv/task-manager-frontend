@@ -6,12 +6,12 @@
 - URL: https://task-manager-frontend-reemplaza.onrender.com
 - Build: pnpm verify
 - Publicación: dist
-- VITE_API_URL: https://joseph-github-io-e4k2.onrender.com/api
+- VITE_API_URL: <URL_DEL_BACKEND>/api
 - Rewrite: /* hacia /index.html
 ## Backend relacionado
 - Repositorio: URL_BACKEND
-- Servicio: joseph-github-io-e4k2
-- URL: https://joseph-github-io-e4k2.onrender.com
+- Servicio: <NOMBRE_DEL_SERVICIO_BACKEND>
+- URL: <URL_DEL_BACKEND>
 - CORS_ORIGIN: https://task-manager-frontend-reemplaza.onrender.com
 - Salud: /health
 - Salud de Atlas: /health/database

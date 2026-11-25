@@ -20,7 +20,7 @@ pnpm install --frozen-lockfile
 pnpm verify
 ## Producción
 - Frontend: URL_FRONTEND
-- API: URL_BACKEND
+- API: https://express-task-api-0c9g.onrender.com
 - Versión: 1.0.0
 Consulta docs/deployment-configuration.md y
 docs/release-checklist.md

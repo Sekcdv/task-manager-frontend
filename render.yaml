@@ -12,7 +12,7 @@ services:
       - key: NODE_VERSION
         value: 24.21.0
       - key: VITE_API_URL
-        value: https://joseph-github-io-e4k2.onrender.com/api
+        value: <URL_DEL_BACKEND>/api
     routes:
       - type: rewrite
         source: /*
